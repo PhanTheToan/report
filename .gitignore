@@ -1,0 +1,13 @@
+client/node_modules/
+client/dist/
+client/*.tsbuildinfo
+client/vite.config.js
+client/vite.config.d.ts
+server/node_modules/
+server/data/*.sqlite
+server/data/*.sqlite-*
+server/uploads/*
+!server/uploads/.gitkeep
+.DS_Store
+Thumbs.db
+.codex

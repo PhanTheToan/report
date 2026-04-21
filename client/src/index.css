@@ -1,0 +1,243 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background: #f8fafc;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.background-grid {
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.3));
+  pointer-events: none;
+}
+
+.panel-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 24px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+}
+
+.input-shell {
+  width: 100%;
+  border-radius: 16px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  padding: 0.85rem 1rem;
+  font-size: 0.95rem;
+  color: #0f172a;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.input-shell:focus {
+  outline: none;
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.12);
+}
+
+.select-shell {
+  width: 100%;
+  appearance: none;
+  cursor: pointer;
+  border-radius: 16px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  padding: 0.85rem 3rem 0.85rem 1rem;
+  font-size: 0.95rem;
+  color: #0f172a;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.select-shell:disabled {
+  cursor: not-allowed;
+  background: #f8fafc;
+  color: #94a3b8;
+}
+
+.select-shell:focus {
+  outline: none;
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.12);
+}
+
+.select-chevron {
+  pointer-events: none;
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  height: 1rem;
+  width: 1rem;
+  color: #475569;
+  transform: translateY(-50%);
+}
+
+.preview-sheet {
+  border-radius: 24px;
+  background: #ffffff;
+  padding: 24px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+}
+
+.preview-sheet > *:last-child {
+  margin-bottom: 0;
+}
+
+.ProseMirror {
+  min-height: 220px;
+}
+
+.ProseMirror p,
+.rich-content p {
+  margin: 0 0 0.8rem;
+}
+
+.ProseMirror ul,
+.ProseMirror ol,
+.rich-content ul,
+.rich-content ol,
+.content-list {
+  margin: 0 0 1rem;
+  padding-left: 1.4rem;
+  list-style-position: outside;
+}
+
+.ProseMirror ul,
+.rich-content ul,
+.content-list {
+  list-style-type: disc;
+}
+
+.ProseMirror ol,
+.rich-content ol {
+  list-style-type: decimal;
+}
+
+.ProseMirror li,
+.rich-content li,
+.content-list li {
+  display: list-item;
+  margin: 0.35rem 0;
+  padding-left: 0.2rem;
+}
+
+.ProseMirror li::marker,
+.rich-content li::marker,
+.content-list li::marker {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.content-list--compact {
+  margin-bottom: 0;
+}
+
+.ProseMirror blockquote,
+.rich-content blockquote {
+  margin: 0 0 1rem;
+  border-left: 4px solid #94a3b8;
+  padding-left: 1rem;
+  color: #475569;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: #94a3b8;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.ProseMirror img,
+.rich-content img {
+  width: 100%;
+  border-radius: 16px;
+  border: 1px solid #cbd5e1;
+}
+
+.ProseMirror table,
+.rich-content table {
+  width: 100%;
+  margin: 0 0 1rem;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.ProseMirror th,
+.ProseMirror td,
+.rich-content th,
+.rich-content td {
+  border: 1px solid #cbd5e1;
+  padding: 0.7rem 0.8rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.ProseMirror th,
+.rich-content th {
+  background: #f1f5f9;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.ProseMirror pre,
+.preview-sheet pre {
+  margin: 0 0 1rem;
+  border-radius: 16px;
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+.rich-editor {
+  overflow-x: auto;
+}
+
+.animate-rise {
+  animation: rise 680ms ease both;
+}
+
+.animate-rise-delayed {
+  animation: rise 880ms ease both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
