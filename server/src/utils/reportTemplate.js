@@ -249,7 +249,16 @@ function renderCvssMeta(cvssScore, cvssRef) {
 }
 
 function renderFinding(finding, index, attachmentDataUrlMap) {
-  const sections = FINDING_SECTIONS.map(([key, label]) => {
+  const findingSections = [
+    ['impact', 'Tác động'],
+    ['description', 'Nguyên nhân'],
+    ['reproduction', 'Tái hiện'],
+    ['location', 'Vị trí'],
+    ['remediation', 'Phương án phòng ngừa'],
+    ['references', 'Tham khảo']
+  ];
+
+  const sections = findingSections.map(([key, label]) => {
     const content = hasMeaningfulHtml(finding[key]) ? resolveUploadUrls(finding[key], attachmentDataUrlMap) : '';
 
     return `

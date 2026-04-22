@@ -21,16 +21,16 @@ export const SEVERITY_LABELS: Record<Severity, string> = {
 
 export const SECTION_DEFINITIONS: SectionDefinition[] = [
   {
-    key: 'description',
-    label: 'Mô tả',
-    helper: 'Tóm tắt vấn đề, bối cảnh và dữ liệu cần thiết.',
-    placeholder: 'Mô tả tổng quan lỗ hổng, điều kiện khai thác và hoàn cảnh xuất hiện.'
-  },
-  {
     key: 'impact',
     label: 'Tác động',
     helper: 'Nêu rõ ảnh hưởng đến bí mật, toàn vẹn và sẵn sàng của hệ thống.',
     placeholder: 'Mô tả khả năng leo thang, truy cập trái phép, lộ dữ liệu hoặc gây gián đoạn.'
+  },
+  {
+    key: 'description',
+    label: 'Nguyên nhân',
+    helper: 'Mô tả nguồn gốc vấn đề, bối cảnh xảy ra và điều kiện khiến lỗ hổng xuất hiện.',
+    placeholder: 'Nêu nguyên nhân gốc rễ, logic xử lý hoặc cấu hình sai khiến lỗ hổng tồn tại.'
   },
   {
     key: 'reproduction',
