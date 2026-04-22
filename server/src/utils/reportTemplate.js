@@ -344,13 +344,29 @@ export function buildReportHtml(report) {
             text-align: left;
             vertical-align: top;
             font-size: 13px;
+            overflow-wrap: anywhere;
+            word-break: break-word;
           }
           .meta-table th,
-          .summary-table th,
           .rich-content th {
             width: 22%;
             background: #f8fafc;
             font-weight: 700;
+          }
+          .summary-table th {
+            background: #f8fafc;
+            font-weight: 700;
+          }
+          .summary-table th:first-child,
+          .summary-table td:first-child {
+            width: 64px;
+            text-align: center;
+            white-space: nowrap;
+          }
+          .summary-table th:last-child,
+          .summary-table td:last-child {
+            width: 128px;
+            white-space: nowrap;
           }
           .report-block {
             margin-bottom: 24px;
@@ -458,8 +474,10 @@ export function buildReportHtml(report) {
             padding-left: 22px;
           }
           .rich-content table {
+            margin: 0 0 14px;
             margin-left: auto;
             margin-right: auto;
+            table-layout: fixed;
           }
           .rich-content ul {
             list-style: disc;
