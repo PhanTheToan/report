@@ -1,5 +1,8 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { extractCvssDisplayText, getCvssReferenceHref } from './cvss.js';
 import { escapeHtml } from './escapeHtml.js';
-import { uploadPublicPathToFileUrl } from './paths.js';
+import { publicUploadPath, UPLOAD_DIR } from './paths.js';
 
 const FINDING_SECTIONS = [
   ['description', 'Mô tả'],
@@ -57,10 +60,7 @@ function renderSeverityPill(severity) {
   const theme = getSeverityTheme(severity);
 
   return `
-    <span
-      class="severity-pill"
-      style="background:${theme.background}; color:${theme.color}; border-color:${theme.border};"
-    >
+    <span class="severity-pill" style="background:${theme.background}; color:${theme.color}; border-color:${theme.border};">
       ${escapeHtml(SEVERITY_LABELS[severity] ?? severity)}
     </span>
   `;
@@ -73,29 +73,125 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
-function resolveUploadUrls(html) {
-  return String(html || '<p>Chưa có nội dung.</p>').replace(
-    /src=(["'])(\/uploads\/[^"']+)\1/g,
-    (_match, quote, publicPath) => `src=${quote}${uploadPublicPathToFileUrl(publicPath)}${quote}`
-  );
+function normalizeUploadSrc(src) {
+  if (typeof src !== 'string' || src.length === 0) {
+    return null;
+  }
+
+  if (src.startsWith('/uploads/')) {
+    return src;
+  }
+
+  try {
+    const parsed = new URL(src);
+    if (parsed.pathname.startsWith('/uploads/')) {
+      return parsed.pathname;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function buildAttachmentDataUrlMap(attachments = []) {
+  const map = new Map();
+
+  for (const attachment of attachments) {
+    if (!attachment?.storedName) {
+      continue;
+    }
+
+    const publicPath = publicUploadPath(attachment.storedName);
+    const filePath = path.join(UPLOAD_DIR, attachment.storedName);
+
+    if (!fs.existsSync(filePath)) {
+      continue;
+    }
+
+    const mimeType = attachment.type || 'application/octet-stream';
+    const base64 = fs.readFileSync(filePath).toString('base64');
+    map.set(publicPath, `data:${mimeType};base64,${base64}`);
+  }
+
+  return map;
+}
+
+function resolveUploadUrls(html, attachmentDataUrlMap) {
+  return String(html || '').replace(/src=(["'])([^"']+)\1/g, (match, quote, src) => {
+    const normalizedSrc = normalizeUploadSrc(src);
+
+    if (!normalizedSrc) {
+      return match;
+    }
+
+    const embeddedSrc = attachmentDataUrlMap.get(normalizedSrc);
+    return embeddedSrc ? `src=${quote}${embeddedSrc}${quote}` : match;
+  });
 }
 
 function hasMeaningfulHtml(html) {
-  return String(html ?? '')
+  const value = String(html ?? '');
+
+  if (/<(img|table|pre|blockquote|ul|ol)\b/i.test(value)) {
+    return true;
+  }
+
+  return value
     .replace(/<[^>]+>/g, '')
     .replace(/&nbsp;/g, ' ')
     .trim().length > 0;
 }
 
-function renderOverview(report) {
-  if (!hasMeaningfulHtml(report.overview)) {
+function renderRichSection(id, title, html, attachmentDataUrlMap, className = '') {
+  if (!hasMeaningfulHtml(html)) {
+    return '';
+  }
+
+  const sectionClassName = ['report-block', id === 'section-appendix' ? 'page-break-before' : '', className]
+    .filter(Boolean)
+    .join(' ');
+
+  return `
+    <section class="${sectionClassName}" id="${id}">
+      <h2 class="section-title">${title}</h2>
+      <div class="rich-content">${resolveUploadUrls(html, attachmentDataUrlMap)}</div>
+    </section>
+  `;
+}
+
+function renderTableOfContents(report) {
+  const items = [];
+
+  if (hasMeaningfulHtml(report.overview)) {
+    items.push(`<li><a class="toc-link" href="#section-overview">Mô tả chung</a></li>`);
+  }
+
+  if (report.findings.length > 0) {
+    items.push(`<li><a class="toc-link" href="#section-summary">Danh sách lỗ hổng</a></li>`);
+    items.push(
+      ...report.findings.map(
+        (finding, index) => `
+          <li><a class="toc-link" href="#finding-${index + 1}">Lỗ hổng ${index + 1}: ${escapeHtml(finding.name)}</a></li>
+        `
+      )
+    );
+  }
+
+  if (hasMeaningfulHtml(report.appendix)) {
+    items.push(`<li><a class="toc-link" href="#section-appendix">Phụ lục</a></li>`);
+  }
+
+  if (items.length === 0) {
     return '';
   }
 
   return `
-    <section class="report-block">
-      <h2 class="section-title">Mô tả chung</h2>
-      <div class="rich-content">${resolveUploadUrls(report.overview)}</div>
+    <section class="report-block" id="section-toc">
+      <h2 class="section-title">Mục lục</h2>
+      <ol class="toc-list">
+        ${items.join('')}
+      </ol>
     </section>
   `;
 }
@@ -110,7 +206,7 @@ function renderFindingSummary(report) {
       (finding, index) => `
         <tr>
           <td>${index + 1}</td>
-          <td>${escapeHtml(finding.name)}</td>
+          <td><a class="summary-link" href="#finding-${index + 1}">${escapeHtml(finding.name)}</a></td>
           <td>${renderSeverityPill(finding.severity)}</td>
         </tr>
       `
@@ -118,7 +214,7 @@ function renderFindingSummary(report) {
     .join('');
 
   return `
-    <section class="report-block">
+    <section class="report-block" id="section-summary">
       <h2 class="section-title">Danh sách lỗ hổng</h2>
       <table class="summary-table">
         <thead>
@@ -134,9 +230,27 @@ function renderFindingSummary(report) {
   `;
 }
 
-function renderFinding(finding, index) {
+function renderCvssMeta(cvssScore, cvssRef) {
+  const displayText = extractCvssDisplayText(cvssRef);
+  const scoreText = typeof cvssScore === 'string' ? cvssScore.trim() : '';
+
+  if (!displayText && !scoreText) {
+    return '';
+  }
+
+  const href = getCvssReferenceHref(cvssRef);
+
+  return `
+    <div class="cvss-meta">
+      ${scoreText ? `<span>Điểm CVSS: ${escapeHtml(scoreText)}</span>` : ''}
+      ${displayText ? (href ? `<a class="cvss-link" href="${escapeHtml(href)}">${escapeHtml(displayText)}</a>` : `<span>${escapeHtml(displayText)}</span>`) : ''}
+    </div>
+  `;
+}
+
+function renderFinding(finding, index, attachmentDataUrlMap) {
   const sections = FINDING_SECTIONS.map(([key, label]) => {
-    const content = hasMeaningfulHtml(finding[key]) ? resolveUploadUrls(finding[key]) : '<p>Chưa có nội dung.</p>';
+    const content = hasMeaningfulHtml(finding[key]) ? resolveUploadUrls(finding[key], attachmentDataUrlMap) : '';
 
     return `
       <section class="finding-section">
@@ -147,11 +261,12 @@ function renderFinding(finding, index) {
   }).join('');
 
   return `
-    <article class="finding-card">
+    <article class="finding-card" id="finding-${index + 1}">
       <div class="finding-header">
         <div>
           <div class="finding-index">Lỗ hổng ${index + 1}</div>
           <h2 class="finding-title">${escapeHtml(finding.name)}</h2>
+          ${renderCvssMeta(finding.cvssScore, finding.cvssRef)}
         </div>
         ${renderSeverityPill(finding.severity)}
       </div>
@@ -161,10 +276,11 @@ function renderFinding(finding, index) {
 }
 
 export function buildReportHtml(report) {
+  const attachmentDataUrlMap = buildAttachmentDataUrlMap(report.attachments);
   const findingsHtml =
     report.findings.length > 0
-      ? report.findings.map((finding, index) => renderFinding(finding, index)).join('')
-      : '<div class="empty-state">Chưa có lỗ hổng nào trong báo cáo này.</div>';
+      ? report.findings.map((finding, index) => renderFinding(finding, index, attachmentDataUrlMap)).join('')
+      : '';
 
   return `
     <!doctype html>
@@ -174,6 +290,7 @@ export function buildReportHtml(report) {
         <title>${escapeHtml(report.title)}</title>
         <style>
           * { box-sizing: border-box; }
+          html { scroll-behavior: smooth; }
           body {
             margin: 0;
             color: #111827;
@@ -229,6 +346,10 @@ export function buildReportHtml(report) {
           .report-block {
             margin-bottom: 24px;
           }
+          .page-break-before {
+            break-before: page;
+            page-break-before: always;
+          }
           .section-title {
             margin: 0 0 12px;
             font-size: 12px;
@@ -237,9 +358,23 @@ export function buildReportHtml(report) {
             text-transform: uppercase;
             color: #475569;
           }
+          .toc-list {
+            margin: 0;
+            padding-left: 20px;
+          }
+          .toc-list li {
+            margin: 8px 0;
+            font-size: 14px;
+            color: #1f2937;
+          }
+          .toc-link,
+          .summary-link {
+            color: #0f172a;
+            text-decoration: none;
+          }
           .subsection-title {
             margin: 0 0 10px;
-            font-size: 15px;
+            font-size: 17px;
             font-weight: 700;
             color: #111827;
           }
@@ -266,6 +401,21 @@ export function buildReportHtml(report) {
             margin: 6px 0 0;
             font-size: 22px;
             line-height: 1.25;
+          }
+          .cvss-meta {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 10px;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #475569;
+            flex-wrap: wrap;
+          }
+          .cvss-link {
+            color: #475569;
+            text-decoration: none;
+            word-break: break-all;
           }
           .severity-pill {
             display: inline-flex;
@@ -298,6 +448,10 @@ export function buildReportHtml(report) {
             margin: 0 0 14px;
             padding-left: 22px;
           }
+          .rich-content table {
+            margin-left: auto;
+            margin-right: auto;
+          }
           .rich-content ul {
             list-style: disc;
           }
@@ -309,8 +463,12 @@ export function buildReportHtml(report) {
           }
           .rich-content img {
             display: block;
-            width: 100%;
-            margin: 14px 0;
+            width: auto;
+            max-width: min(520px, 78%);
+            height: auto;
+            max-height: 560px;
+            object-fit: contain;
+            margin: 14px auto;
             border: 1px solid #cbd5e1;
           }
           .rich-content pre {
@@ -327,20 +485,13 @@ export function buildReportHtml(report) {
             border-left: 3px solid #94a3b8;
             color: #475569;
           }
-          .empty-state {
-            padding: 14px 16px;
-            border: 1px solid #cbd5e1;
-            background: #f8fafc;
-            color: #475569;
-            font-size: 14px;
-          }
         </style>
       </head>
       <body>
         <div class="document">
           <header class="report-header">
             <h1 class="report-title">${escapeHtml(report.title)}</h1>
-            <p class="report-subtitle">Báo cáo tổng hợp thông tin chung và danh sách lỗ hổng.</p>
+            <p class="report-subtitle">Báo cáo tổng hợp thông tin chung, danh sách lỗ hổng và phụ lục.</p>
             <table class="meta-table">
               <tbody>
                 <tr>
@@ -359,9 +510,11 @@ export function buildReportHtml(report) {
             </table>
           </header>
 
-          ${renderOverview(report)}
+          ${renderTableOfContents(report)}
+          ${renderRichSection('section-overview', 'Mô tả chung', report.overview, attachmentDataUrlMap)}
           ${renderFindingSummary(report)}
           ${findingsHtml}
+          ${renderRichSection('section-appendix', 'Phụ lục', report.appendix, attachmentDataUrlMap)}
         </div>
       </body>
     </html>

@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS reports (
   author TEXT NOT NULL,
   target TEXT NOT NULL,
   overview_html TEXT NOT NULL DEFAULT '<p></p>',
+  appendix_html TEXT NOT NULL DEFAULT '<p></p>',
   language TEXT NOT NULL DEFAULT 'vi',
   template TEXT NOT NULL DEFAULT 'default-v2',
   created_at TEXT NOT NULL,
@@ -22,6 +23,8 @@ CREATE TABLE IF NOT EXISTS findings (
   reproduction_html TEXT NOT NULL DEFAULT '<ol><li></li></ol>',
   location_html TEXT NOT NULL DEFAULT '<p></p>',
   remediation_html TEXT NOT NULL DEFAULT '<p></p>',
+  cvss_score TEXT NOT NULL DEFAULT '',
+  cvss_ref TEXT NOT NULL DEFAULT '',
   references_html TEXT NOT NULL DEFAULT '<p></p>',
   sort_order INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL,
@@ -45,4 +48,3 @@ CREATE TABLE IF NOT EXISTS attachments (
 
 CREATE INDEX IF NOT EXISTS idx_findings_report_sort ON findings(report_id, sort_order);
 CREATE INDEX IF NOT EXISTS idx_attachments_report_created ON attachments(report_id, created_at);
-

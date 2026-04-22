@@ -14,6 +14,7 @@ export interface UpdateReportPayload {
   author?: string;
   target?: string;
   overview?: string;
+  appendix?: string;
 }
 
 export interface UpdateFindingPayload {
@@ -24,7 +25,18 @@ export interface UpdateFindingPayload {
   reproduction?: string;
   location?: string;
   remediation?: string;
+  cvssScore?: string;
+  cvssRef?: string;
   references?: string;
+}
+
+export interface BackupImportResponse {
+  success: true;
+  counts: {
+    reports: number;
+    findings: number;
+    attachments: number;
+  };
 }
 
 function resolveApiPath(path: string) {
@@ -74,6 +86,28 @@ export async function fetchReportPdf(reportId: string, disposition: 'inline' | '
   }
 
   return response.blob();
+}
+
+export async function fetchBackupFile() {
+  const response = await fetch(resolveApiPath('/api/backup/export'));
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Không tạo được file backup.'));
+  }
+
+  return response.blob();
+}
+
+export async function importBackupFile(file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(resolveApiPath('/api/backup/import'), {
+    method: 'POST',
+    body: formData
+  });
+
+  return readJson<BackupImportResponse>(response, 'Không khôi phục được file backup.');
 }
 
 export async function checkHealth() {

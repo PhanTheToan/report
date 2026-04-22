@@ -1,6 +1,7 @@
 import cors from 'cors';
 import express from 'express';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import backupRouter from './routes/backup.js';
 import findingsRouter from './routes/findings.js';
 import healthRouter from './routes/health.js';
 import reportsRouter from './routes/reports.js';
@@ -20,6 +21,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use('/uploads', express.static(UPLOAD_DIR));
 
 app.use('/api/health', healthRouter);
+app.use('/api/backup', backupRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api/findings', findingsRouter);
 app.use('/api/upload', uploadRouter);

@@ -31,6 +31,8 @@ export interface FindingRecord {
   reproduction: string;
   location: string;
   remediation: string;
+  cvssScore: string;
+  cvssRef: string;
   references: string;
   sortOrder: number;
   createdAt: string;
@@ -43,6 +45,7 @@ export interface ReportRecord {
   author: string;
   target: string;
   overview: string;
+  appendix: string;
   language: 'vi' | 'en';
   template: 'default-v2';
   createdAt: string;

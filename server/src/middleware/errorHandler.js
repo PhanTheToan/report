@@ -7,11 +7,13 @@ export function notFoundHandler(_req, res) {
   });
 }
 
-export function errorHandler(error, _req, res, _next) {
+export function errorHandler(error, req, res, _next) {
   if (error instanceof multer.MulterError) {
+    const isBackupImport = req.originalUrl?.includes('/api/backup/import');
+
     res.status(400).json({
       success: false,
-      message: error.code === 'LIMIT_FILE_SIZE' ? 'Ảnh vượt quá giới hạn 8MB.' : error.message
+      message: error.code === 'LIMIT_FILE_SIZE' ? (isBackupImport ? 'File backup vượt quá giới hạn 64MB.' : 'Ảnh vượt quá giới hạn 8MB.') : error.message
     });
     return;
   }

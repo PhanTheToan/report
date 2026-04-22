@@ -1,17 +1,17 @@
 # Vuln Report App
 
-Ứng dụng web để quản lý báo cáo lỗ hổng theo mô hình:
+Ứng dụng web để quản lý báo cáo lỗ hổng với mô hình:
 
 - một workspace có nhiều báo cáo
 - mỗi báo cáo có nhiều lỗ hổng
-- mỗi lỗ hổng có rich text, ảnh và bảng
+- mỗi lỗ hổng có rich text, ảnh, bảng, CVSS score và CVSS vector/link
 - backend lưu dữ liệu bằng SQLite và xuất PDF bằng Chromium
 
 ## Stack
 
 - Client: React + Vite + TypeScript + Tiptap + TailwindCSS
 - Server: Node.js + Express + SQLite (`node:sqlite`) + multer + `puppeteer-core`
-- PDF: Chromium chạy headless
+- Xử lý ảnh: `sharp`
 - Deploy: Docker + Docker Compose
 
 ## Tính năng hiện có
@@ -20,9 +20,12 @@
 - CRUD lỗ hổng trong từng báo cáo
 - giao diện master-detail cho báo cáo và lỗ hổng
 - rich text editor cho mô tả báo cáo và các section của lỗ hổng
-- hỗ trợ chèn ảnh bằng `Ctrl+V`
-- hỗ trợ chèn bảng, thêm/xóa hàng, thêm/xóa cột
+- hỗ trợ chèn ảnh bằng `Ctrl+V` hoặc upload
+- tự resize ảnh lớn khi upload
+- hỗ trợ chèn bảng, thêm/xóa hàng, thêm/xóa cột, phóng to/thu nhỏ bảng
+- nhập `CVSS score` và `CVSS vector/link`
 - xem PDF trực tiếp hoặc tải PDF
+- sao lưu và khôi phục toàn bộ dữ liệu bằng file backup JSON kèm ảnh upload
 
 ## Chạy local
 
@@ -96,27 +99,35 @@ Compose tạo hai volume:
 - `vuln_report_data`: chứa SQLite database
 - `vuln_report_uploads`: chứa file upload
 
-Nếu chuyển máy hoặc redeploy, chỉ cần giữ lại hai volume này là dữ liệu còn nguyên.
+Nếu redeploy bằng Docker, chỉ cần giữ lại hai volume này là dữ liệu còn nguyên.
 
-### Cổng mặc định
+## Sao lưu và khôi phục dữ liệu
 
-- Frontend: `8080`
-- Backend nội bộ: `4000`
+### Vì sao cần chức năng này
 
-Muốn đổi cổng public của frontend:
+Nếu chỉ `commit` code rồi `push` Git, sau đó sang máy khác `pull` về thì dữ liệu cũ **không tự đi theo** vì:
 
-Linux/macOS:
+- SQLite nằm ở `server/data/vuln-report.sqlite`
+- file upload nằm ở `server/uploads/`
+- cả hai đang bị ignore trong Git
 
-```bash
-APP_PORT=3000 docker compose up --build -d
-```
+### Cách chuyển dữ liệu sang máy khác
 
-Windows PowerShell:
+Trong giao diện có hai nút:
 
-```powershell
-$env:APP_PORT=3000
-docker compose up --build -d
-```
+- `Sao lưu`: tải về một file backup `.json`
+- `Khôi phục`: import lại file backup đó vào máy khác
+
+File backup chứa:
+
+- toàn bộ báo cáo
+- toàn bộ lỗ hổng
+- toàn bộ ảnh upload dưới dạng base64
+
+Lưu ý:
+
+- `Khôi phục` sẽ **ghi đè toàn bộ dữ liệu hiện tại**
+- nên sao lưu trước khi import nếu trên máy đích đang có dữ liệu cần giữ
 
 ## Cấu trúc dữ liệu
 
@@ -143,6 +154,8 @@ docker compose up --build -d
 - `reproduction_html`
 - `location_html`
 - `remediation_html`
+- `cvss_score`
+- `cvss_ref`
 - `references_html`
 - `sort_order`
 - `created_at`
@@ -204,6 +217,8 @@ Cập nhật lỗ hổng:
 - `reproduction`
 - `location`
 - `remediation`
+- `cvssScore`
+- `cvssRef`
 - `references`
 
 ### `DELETE /api/findings/:findingId`
@@ -225,6 +240,14 @@ Mở PDF trực tiếp trên trình duyệt.
 ### `GET /api/reports/:reportId/pdf?disposition=attachment`
 
 Tải file PDF về máy.
+
+### `GET /api/backup/export`
+
+Tải file backup JSON của toàn bộ workspace.
+
+### `POST /api/backup/import`
+
+Khôi phục toàn bộ workspace từ file backup JSON.
 
 ## Ghi chú triển khai
 

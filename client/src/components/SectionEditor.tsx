@@ -23,7 +23,7 @@ export default function SectionEditor({
   return (
     <section className="space-y-3">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold text-slate-900">{label}</h3>
+        <h3 className="text-xl font-semibold text-slate-900">{label}</h3>
         <p className="text-sm leading-6 text-slate-500">{helper}</p>
       </div>
       <RichTextEditor

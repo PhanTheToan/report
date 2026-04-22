@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { ChevronDown, LoaderCircle } from 'lucide-react';
 import ActionBar from './components/ActionBar';
 import RichTextEditor from './components/RichTextEditor';
@@ -11,15 +11,18 @@ import {
   createReport,
   deleteFinding,
   deleteReport,
+  fetchBackupFile,
   fetchReport,
   fetchReportPdf,
   fetchReports,
+  importBackupFile,
   updateFinding,
   updateReport,
   uploadImage,
   type UpdateFindingPayload,
   type UpdateReportPayload
 } from './utils/api';
+import { extractCvssDisplayText, getCvssReferenceHref } from './utils/cvss';
 import {
   SECTION_DEFINITIONS,
   SEVERITY_OPTIONS,
@@ -44,6 +47,11 @@ const SAVE_STATE_LABELS: Record<SaveState, string> = {
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function backupFilename() {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  return `vuln-report-backup-${timestamp}.json`;
 }
 
 function backendStatusClass(status: 'checking' | 'online' | 'offline') {
@@ -71,6 +79,7 @@ function saveStateClass(state: SaveState) {
 }
 
 export default function App() {
+  const backupInputRef = useRef<HTMLInputElement | null>(null);
   const flashTimerRef = useRef<number | null>(null);
   const reportTimerRef = useRef<number | null>(null);
   const findingTimerRef = useRef<number | null>(null);
@@ -254,6 +263,7 @@ export default function App() {
           author: response.report.author,
           target: response.report.target,
           overview: response.report.overview,
+          appendix: response.report.appendix,
           language: response.report.language,
           template: response.report.template,
           createdAt: response.report.createdAt,
@@ -560,6 +570,83 @@ export default function App() {
     }
   }
 
+  async function handleExportBackup() {
+    try {
+      setBusyAction('export-backup');
+      await flushPendingSaves();
+      const blob = await fetchBackupFile();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = backupFilename();
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      showFlash('Đã tạo file sao lưu dữ liệu.', 'success');
+    } catch (error) {
+      showFlash(error instanceof Error ? error.message : 'Không tạo được file sao lưu.', 'error');
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  function handleImportBackupClick() {
+    if (busyAction) {
+      return;
+    }
+
+    backupInputRef.current?.click();
+  }
+
+  async function handleImportBackup(file: File) {
+    const shouldRestore = window.confirm('Khôi phục backup sẽ thay thế toàn bộ dữ liệu hiện tại, bao gồm cả ảnh upload. Tiếp tục?');
+
+    if (!shouldRestore) {
+      return;
+    }
+
+    try {
+      setBusyAction('import-backup');
+      await flushPendingSaves();
+      const response = await importBackupFile(file);
+      const { reports: restoredReports } = await fetchReports();
+
+      if (restoredReports.length === 0) {
+        const created = await createReport();
+        setReports([toReportSummary(created.report)]);
+        setReport(created.report);
+        setSelectedReportId(created.report.id);
+        setSelectedFindingId(created.report.findings[0]?.id ?? null);
+      } else {
+        setReports(restoredReports);
+        await loadReport(restoredReports[0].id);
+      }
+
+      setActiveEditor('report');
+      setSaveState('saved');
+      showFlash(
+        `Đã khôi phục ${response.counts.reports} báo cáo, ${response.counts.findings} lỗ hổng và ${response.counts.attachments} tệp đính kèm.`,
+        'success'
+      );
+    } catch (error) {
+      showFlash(error instanceof Error ? error.message : 'Không khôi phục được file backup.', 'error');
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  function handleBackupFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    void handleImportBackup(file);
+  }
+
   async function handleImageUpload(file: File, findingId?: string | null): Promise<Attachment> {
     if (!report) {
       throw new Error('Chưa có báo cáo đang chọn.');
@@ -613,8 +700,25 @@ export default function App() {
     });
   }
 
+  function updateAppendix(value: string) {
+    if (!report) {
+      return;
+    }
+
+    patchCurrentReportLocally({
+      appendix: value,
+      updatedAt: nowIso()
+    });
+    queueReportPatch(report.id, {
+      appendix: value
+    });
+  }
+
   function updateFindingField<
-    K extends keyof Pick<FindingRecord, 'name' | 'severity' | 'description' | 'impact' | 'reproduction' | 'location' | 'remediation' | 'references'>
+    K extends keyof Pick<
+      FindingRecord,
+      'name' | 'severity' | 'description' | 'impact' | 'reproduction' | 'location' | 'remediation' | 'cvssScore' | 'cvssRef' | 'references'
+    >
   >(key: K, value: FindingRecord[K]) {
     if (!selectedFinding) {
       return;
@@ -662,13 +766,17 @@ export default function App() {
           onDeleteReport={handleDeleteReport}
           onCreateFinding={handleCreateFinding}
           onDeleteFinding={handleDeleteFinding}
+          onExportBackup={handleExportBackup}
+          onImportBackup={handleImportBackupClick}
           onPreviewPdf={handlePreviewPdf}
           onDownloadPdf={handleDownloadPdf}
+          canBackup={workspaceState === 'ready' && busyAction === null}
           canCreateFinding={Boolean(report) && busyAction === null}
           canDeleteReport={Boolean(report) && busyAction === null}
           canDeleteFinding={Boolean(selectedFinding) && activeEditor === 'finding' && busyAction === null}
           canExportPdf={Boolean(report) && busyAction === null}
         />
+        <input ref={backupInputRef} type="file" accept=".json,application/json" className="hidden" onChange={handleBackupFileChange} />
 
         <section className="mt-6 grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
           <aside>
@@ -783,6 +891,23 @@ export default function App() {
                     />
                   </div>
                 </section>
+                <section className="panel-card">
+                  <div className="space-y-2">
+                    <h2 className="text-xl font-semibold text-slate-900">Phụ lục</h2>
+                    <p className="text-sm leading-6 text-slate-500">
+                      Dùng cho bằng chứng bổ sung, ảnh chụp, bảng tổng hợp hoặc nội dung tham khảo cần đính kèm cuối báo cáo.
+                    </p>
+                  </div>
+                  <div className="mt-5">
+                    <RichTextEditor
+                      value={report?.appendix ?? '<p></p>'}
+                      placeholder="Bổ sung phụ lục, bằng chứng hoặc nội dung tham khảo cuối báo cáo."
+                      onChange={updateAppendix}
+                      onImageUpload={(file) => handleImageUpload(file, null)}
+                      onEditorMessage={showFlash}
+                    />
+                  </div>
+                </section>
               </>
             ) : (
               <section className="panel-card">
@@ -822,6 +947,55 @@ export default function App() {
                           </select>
                           <ChevronDown className={`select-chevron ${getSeverityChevronClass(selectedFinding.severity)}`} />
                         </div>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-5 lg:grid-cols-[180px_minmax(0,1fr)]">
+                      <label className="grid gap-2 text-sm text-slate-600">
+                        <span className="font-medium text-slate-700">Điểm CVSS</span>
+                        <input
+                          value={selectedFinding.cvssScore}
+                          onChange={(event) => updateFindingField('cvssScore', event.target.value)}
+                          className="input-shell"
+                          inputMode="decimal"
+                          placeholder="9.8"
+                        />
+                      </label>
+
+                      <div className="grid gap-2 text-sm text-slate-600">
+                      <span className="font-medium text-slate-700">CVSS / Link tham chiếu</span>
+                      <input
+                        value={selectedFinding.cvssRef}
+                        onChange={(event) => updateFindingField('cvssRef', event.target.value)}
+                        className="input-shell"
+                        placeholder="Dán vector CVSS hoặc link calculator từ first.org"
+                      />
+                      {selectedFinding.cvssScore || selectedFinding.cvssRef ? (
+                        (() => {
+                          const displayText = extractCvssDisplayText(selectedFinding.cvssRef);
+                          const href = getCvssReferenceHref(selectedFinding.cvssRef);
+
+                          return (
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium text-slate-600">
+                              {selectedFinding.cvssScore ? <span>Điểm CVSS: {selectedFinding.cvssScore}</span> : null}
+                              {displayText ? (
+                                href ? (
+                                  <a
+                                    href={href}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-sm font-medium text-slate-600 underline decoration-slate-300 underline-offset-4"
+                                  >
+                                    {displayText}
+                                  </a>
+                                ) : (
+                                  <span>{displayText}</span>
+                                )
+                              ) : null}
+                            </div>
+                          );
+                        })()
+                      ) : null}
                       </div>
                     </div>
 

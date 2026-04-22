@@ -48,6 +48,10 @@ export async function generateReportPdf(report) {
   try {
     const page = await browser.newPage();
     await page.setContent(buildReportHtml(report), { waitUntil: 'load' });
+    await page.waitForFunction(() => {
+      const images = Array.from(document.images);
+      return images.every((image) => image.complete);
+    });
     await page.emulateMediaType('screen');
 
     return await page.pdf({

@@ -1,13 +1,16 @@
 import type { ReactNode } from 'react';
-import { Eye, FileDown, FilePlus2, ShieldAlert, Trash2 } from 'lucide-react';
+import { Archive, Eye, FileDown, FilePlus2, ShieldAlert, Trash2, Upload } from 'lucide-react';
 
 interface ActionBarProps {
   onCreateReport: () => void;
   onDeleteReport: () => void;
   onCreateFinding: () => void;
   onDeleteFinding: () => void;
+  onExportBackup: () => void;
+  onImportBackup: () => void;
   onPreviewPdf: () => void;
   onDownloadPdf: () => void;
+  canBackup: boolean;
   canCreateFinding: boolean;
   canDeleteReport: boolean;
   canDeleteFinding: boolean;
@@ -54,8 +57,11 @@ export default function ActionBar({
   onDeleteReport,
   onCreateFinding,
   onDeleteFinding,
+  onExportBackup,
+  onImportBackup,
   onPreviewPdf,
   onDownloadPdf,
+  canBackup,
   canCreateFinding,
   canDeleteReport,
   canDeleteFinding,
@@ -65,6 +71,8 @@ export default function ActionBar({
     <div className="panel-card flex flex-wrap items-center gap-3 px-5 py-4">
       <ActionButton label="Báo cáo mới" onClick={onCreateReport} icon={<FilePlus2 className="h-4 w-4" />} />
       <ActionButton label="Thêm lỗ hổng" onClick={onCreateFinding} icon={<ShieldAlert className="h-4 w-4" />} disabled={!canCreateFinding} />
+      <ActionButton label="Sao lưu" onClick={onExportBackup} icon={<Archive className="h-4 w-4" />} disabled={!canBackup} />
+      <ActionButton label="Khôi phục" onClick={onImportBackup} icon={<Upload className="h-4 w-4" />} disabled={!canBackup} />
       <ActionButton label="Xem PDF" onClick={onPreviewPdf} icon={<Eye className="h-4 w-4" />} disabled={!canExportPdf} variant="primary" />
       <ActionButton label="Tải PDF" onClick={onDownloadPdf} icon={<FileDown className="h-4 w-4" />} disabled={!canExportPdf} />
       <div className="ml-auto flex flex-wrap gap-3">
