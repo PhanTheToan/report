@@ -6,6 +6,7 @@ import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import TableRow from '@tiptap/extension-table-row';
 import StarterKit from '@tiptap/starter-kit';
+import { X } from 'lucide-react';
 import { TextSelection } from '@tiptap/pm/state';
 import { TableMap, cellAround, findTable } from '@tiptap/pm/tables';
 import type { EditorView } from '@tiptap/pm/view';
@@ -134,6 +135,7 @@ export default function RichTextEditor({
 }: RichTextEditorProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [previewImage, setPreviewImage] = useState<{ src: string; alt: string } | null>(null);
 
   async function handleImage(file: File) {
     if (!file.type.startsWith('image/')) {
@@ -174,6 +176,18 @@ export default function RichTextEditor({
     editorProps: {
       attributes: {
         class: 'rich-editor min-h-[240px] max-w-none px-4 py-4 font-body text-[15px] leading-7 text-slate-700 focus:outline-none'
+      },
+      handleClick(_view, _pos, event) {
+        if (event.target instanceof HTMLImageElement) {
+          setPreviewImage({
+            src: event.target.currentSrc || event.target.src,
+            alt: event.target.alt || 'Ảnh đã chèn'
+          });
+          event.preventDefault();
+          return true;
+        }
+
+        return false;
       },
       handlePaste(view, event) {
         const items = Array.from(event.clipboardData?.items ?? []);
@@ -240,25 +254,75 @@ export default function RichTextEditor({
     }
   }, [editor, value]);
 
+  useEffect(() => {
+    if (!previewImage) {
+      return undefined;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setPreviewImage(null);
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [previewImage]);
+
   return (
-    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-soft">
-      {editor ? <EditorToolbar editor={editor} isUploading={isUploading} onPickImage={() => fileInputRef.current?.click()} /> : null}
-      <EditorContent editor={editor} />
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/png,image/jpeg,image/webp,image/gif"
-        className="hidden"
-        onChange={(event) => {
-          const file = event.target.files?.[0];
+    <>
+      <div className="relative overflow-visible rounded-3xl border border-slate-200 bg-white shadow-soft">
+        {editor ? <EditorToolbar editor={editor} isUploading={isUploading} onPickImage={() => fileInputRef.current?.click()} /> : null}
+        <div className="overflow-hidden rounded-b-3xl">
+          <EditorContent editor={editor} />
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
 
-          if (file) {
-            void handleImage(file);
-          }
+            if (file) {
+              void handleImage(file);
+            }
 
-          event.target.value = '';
-        }}
-      />
-    </div>
+            event.target.value = '';
+          }}
+        />
+      </div>
+
+      {previewImage ? (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/80 px-4 py-6 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Xem ảnh"
+          onClick={() => setPreviewImage(null)}
+        >
+          <button
+            type="button"
+            aria-label="Đóng xem ảnh"
+            className="absolute right-4 top-4 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            onClick={() => setPreviewImage(null)}
+          >
+            <X className="h-5 w-5" />
+          </button>
+
+          <div className="max-h-full max-w-[min(1100px,92vw)]" onClick={(event) => event.stopPropagation()}>
+            <img
+              src={previewImage.src}
+              alt={previewImage.alt}
+              className="max-h-[86vh] w-auto max-w-full rounded-3xl border border-white/10 bg-white shadow-2xl"
+            />
+            {previewImage.alt ? <p className="mt-3 text-center text-sm text-slate-200">{previewImage.alt}</p> : null}
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }

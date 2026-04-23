@@ -23,37 +23,37 @@ export const SECTION_DEFINITIONS: SectionDefinition[] = [
   {
     key: 'impact',
     label: 'Tác động',
-    helper: 'Nêu rõ ảnh hưởng đến bí mật, toàn vẹn và sẵn sàng của hệ thống.',
+    helper: 'Mức ảnh hưởng.',
     placeholder: 'Mô tả khả năng leo thang, truy cập trái phép, lộ dữ liệu hoặc gây gián đoạn.'
   },
   {
     key: 'description',
     label: 'Nguyên nhân',
-    helper: 'Mô tả nguồn gốc vấn đề, bối cảnh xảy ra và điều kiện khiến lỗ hổng xuất hiện.',
+    helper: 'Nguyên nhân gốc.',
     placeholder: 'Nêu nguyên nhân gốc rễ, logic xử lý hoặc cấu hình sai khiến lỗ hổng tồn tại.'
   },
   {
     key: 'reproduction',
     label: 'Tái hiện',
-    helper: 'Ghi lại các bước proof-of-concept theo thứ tự rõ ràng.',
+    helper: 'Các bước PoC.',
     placeholder: 'Thêm từng bước tái hiện, request/response, payload và kết quả quan sát được.'
   },
   {
     key: 'location',
     label: 'Vị trí',
-    helper: 'Chỉ rõ endpoint, màn hình, tham số hoặc service bị ảnh hưởng.',
+    helper: 'Điểm bị ảnh hưởng.',
     placeholder: 'Ví dụ: GET /search?q= trên https://example.com/search'
   },
   {
     key: 'remediation',
     label: 'Phương án phòng ngừa',
-    helper: 'Đưa ra hướng khắc phục ở mức kỹ thuật và quy trình.',
+    helper: 'Cách khắc phục.',
     placeholder: 'Nêu biện pháp fix, hardening, validate input, parameterized query hoặc WAF.'
   },
   {
     key: 'references',
     label: 'Tham khảo',
-    helper: 'Chèn liên kết OWASP, CVE, tài liệu nhà cung cấp hoặc ảnh minh họa.',
+    helper: 'Link và tài liệu.',
     placeholder: 'Thêm danh sách reference, CVE, guideline hoặc wiki nội bộ.'
   }
 ];

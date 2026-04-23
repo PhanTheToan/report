@@ -38,9 +38,7 @@ export default function WorkspaceSidebar({
       <section className="panel-card px-5 py-5">
         <div className="space-y-1">
           <h2 className="text-lg font-semibold text-slate-900">Điều hướng</h2>
-          <p className="text-sm leading-6 text-slate-500">
-            Bấm vào báo cáo để sửa phần mô tả chung. Bấm vào lỗ hổng để mở form chỉnh sửa riêng của mục đó.
-          </p>
+          <p className="text-sm leading-6 text-slate-500">Chọn báo cáo hoặc lỗ hổng để sửa.</p>
         </div>
       </section>
 

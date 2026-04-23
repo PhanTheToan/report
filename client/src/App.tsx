@@ -799,11 +799,7 @@ export default function App() {
             <section className="panel-card flex flex-wrap items-center justify-between gap-4 px-5 py-4">
               <div className="min-w-0 space-y-1">
                 <div className="inline-flex rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">{contextBadgeLabel}</div>
-                <p className="text-sm text-slate-500">
-                  {activeEditor === 'report'
-                    ? 'Nhấn vào báo cáo để sửa thông tin chung và mô tả tổng quan.'
-                    : 'Nhấn vào lỗ hổng để sửa trực tiếp nội dung của mục đó mà không cần cuộn qua phần báo cáo.'}
-                </p>
+                <p className="text-sm text-slate-500">{activeEditor === 'report' ? 'Đang sửa báo cáo.' : 'Đang sửa lỗ hổng đã chọn.'}</p>
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -821,9 +817,7 @@ export default function App() {
                 <section className="panel-card">
                   <div className="space-y-2">
                     <h2 className="text-2xl font-semibold text-slate-900">Thông tin báo cáo</h2>
-                    <p className="text-sm leading-6 text-slate-500">
-                      Cập nhật tiêu đề, mục tiêu và thông tin chung. Khi cần sửa nội dung của một lỗ hổng cụ thể, chỉ cần bấm vào mục đó trong sidebar.
-                    </p>
+                    <p className="text-sm leading-6 text-slate-500">Sửa tên báo cáo và thông tin chung.</p>
                   </div>
 
                   <div className="mt-6 grid gap-5 md:grid-cols-2">
@@ -877,9 +871,7 @@ export default function App() {
                 <section className="panel-card">
                   <div className="space-y-2">
                     <h2 className="text-xl font-semibold text-slate-900">Mô tả chung</h2>
-                    <p className="text-sm leading-6 text-slate-500">
-                      Phần này dùng cho phạm vi, bối cảnh, phương pháp đánh giá và tóm tắt chung của báo cáo.
-                    </p>
+                    <p className="text-sm leading-6 text-slate-500">Tóm tắt phạm vi và bối cảnh.</p>
                   </div>
                   <div className="mt-5">
                     <RichTextEditor
@@ -894,9 +886,7 @@ export default function App() {
                 <section className="panel-card">
                   <div className="space-y-2">
                     <h2 className="text-xl font-semibold text-slate-900">Phụ lục</h2>
-                    <p className="text-sm leading-6 text-slate-500">
-                      Dùng cho bằng chứng bổ sung, ảnh chụp, bảng tổng hợp hoặc nội dung tham khảo cần đính kèm cuối báo cáo.
-                    </p>
+                    <p className="text-sm leading-6 text-slate-500">Bằng chứng và nội dung bổ sung.</p>
                   </div>
                   <div className="mt-5">
                     <RichTextEditor
@@ -913,9 +903,7 @@ export default function App() {
               <section className="panel-card">
                 <div className="space-y-2">
                   <h2 className="text-2xl font-semibold text-slate-900">Chi tiết lỗ hổng</h2>
-                  <p className="text-sm leading-6 text-slate-500">
-                    Chỉ hiển thị lỗ hổng đang chọn để thao tác nhanh hơn. Thông tin chung của báo cáo được tách riêng khi bấm vào mục báo cáo trong sidebar.
-                  </p>
+                  <p className="text-sm leading-6 text-slate-500">Sửa nội dung của lỗ hổng đang chọn.</p>
                 </div>
 
                 {selectedFinding ? (
@@ -1031,7 +1019,7 @@ export default function App() {
                   </div>
                 ) : (
                   <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-4 text-sm text-slate-500">
-                    Báo cáo này chưa có lỗ hổng. Hãy thêm một lỗ hổng mới để bắt đầu.
+                    Chưa có lỗ hổng.
                   </div>
                 )}
               </section>
@@ -1056,3 +1044,4 @@ export default function App() {
     </div>
   );
 }
+
